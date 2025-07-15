@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brad's Fantasy Rankings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #00f;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+    }
+    .controls {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .controls input, .controls select {
+      padding: 8px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: none;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+    }
+    .player-list, .removed-list {
+      flex: 1;
+      background: #111;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,255,0.5);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .player {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+      gap: 10px;
+    }
+    .player:hover {
+      background-color: #222;
+    }
+    .position {
+      width: 40px;
+      text-align: left;
+      font-weight: bold;
+    }
+    .player-name {
+      flex-grow: 1;
+    }
+    .tier-title {
+      font-weight: bold;
+      margin-top: 20px;
+      font-size: 1.2em;
+      color: #fff;
+    }
+    .player-list .section-title {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #0f0;
+    }
+    .removed-list .section-title {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #f00;
+    }
+    .removed-list .player {
+      color: #f00;
+    }
+    .QB { color: pink; }
+    .RB { color: green; }
+    .WR { color: blue; }
+    .TE { color: yellow; }
+    .K { color: purple; }
+    .DST { color: brown; }
+  </style>
+</head>
+<body>
+  <h1>Brad's Fantasy Rankings</h1>
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search players...">
+    <select id="teamFilter">
+      <option value="">All Teams</option>
+    </select>
+    <select id="positionFilter">
+      <option value="">All Positions</option>
+      <option value="QB">QB</option>
+      <option value="RB">RB</option>
+      <option value="WR">WR</option>
+      <option value="TE">TE</option>
+      <option value="K">K</option>
+      <option value="DST">DST</option>
+    </select>
+  </div>
+  <div class="container">
+    <div class="player-list">
+      <div class="section-title">Available Players</div>
+      <div id="playerList"></div>
+    </div>
+    <div class="removed-list">
+      <div class="section-title">Removed Players</div>
+      <div id="removedList"></div>
+    </div>
+  </div>
+
+  <script>
+    const data = `Tier 1
+1 CIN Ja'Marr Chase WR
+2 ATL Bijan Robinson RB
+3 DAL CeeDee Lamb WR
+4 PHI Saquon Barkley RB
+5 MIN Justin Jefferson WR
+Tier 2
+6 LAR Puka Nacua WR
+7 SF Christian McCaffrey RB
+8 DET Jahmyr Gibbs RB
+9 NYG Malik Nabers WR
+10 HOU Nico Collins WR
+11 JAC Brian Thomas Jr. WR
+12 LVR Ashton Jeanty RB
+13 MIA De'Von Achane RB
+14 IND Jonathan Taylor RB
+15 BAL Derrick Henry RB
+Tier 3
+16 DET Amon-Ra St. Brown WR
+17 PHI A.J. Brown WR
+18 ATL Drake London WR
+19 CIN Tee Higgins WR
+20 MIA Tyreek Hill WR
+21 NYJ Breece Hall RB
+22 LVR Brock Bowers TE
+23 NO Alvin Kamara RB
+24 CIN Chase Brown RB
+25 ARI Trey McBride TE
+26 TB Bucky Irving RB
+27 GB Josh Jacobs RB
+28 HOU Joe Mixon RB
+Tier 4
+29 KC Rashee Rice WR
+30 BAL Lamar Jackson QB
+31 WAS Jayden Daniels QB
+32 LAR Kyren Williams RB
+33 LAC Ladd McConkey WR
+34 BUF Josh Allen QB
+35 PHI Jalen Hurts QB
+36 SEA Kenneth Walker III RB
+37 TB Mike Evans WR
+38 BUF James Cook RB
+39 LAR Davante Adams WR
+40 ARI James Conner RB
+41 NYJ Garrett Wilson WR
+42 CAR Chuba Hubbard RB
+43 SF George Kittle TE
+Tier 5
+44 CHI D.J. Moore WR
+45 SEA Jaxon Smith-Njigba WR
+46 WAS Terry McLaurin WR
+47 PIT D.K. Metcalf WR
+48 MIA Jaylen Waddle WR
+49 KC Xavier Worthy WR
+50 ARI Marvin Harrison Jr. WR
+51 CAR Tetairoa McMillan WR
+52 PHI DeVonta Smith WR
+53 CIN Joe Burrow QB
+54 BAL Zay Flowers WR
+55 DEN Courtland Sutton WR
+56 DET Sam LaPorta TE
+57 JAC Travis Hunter WR
+Tier 6
+58 DAL George Pickens WR
+59 TB Chris Godwin WR
+60 DET David Montgomery RB
+61 LAC Omarion Hampton RB
+62 MIN Aaron Jones RB
+63 DET Jameson Williams WR
+64 KC Isiah Pacheco RB
+65 KC Travis Kelce TE
+66 NO Chris Olave WR
+67 CHI D'Andre Swift RB
+68 CLE Quinshon Judkins RB
+69 TEN Calvin Ridley WR
+70 TEN Tony Pollard RB
+71 MIN T.J. Hockenson TE
+72 NE TreVeyon Henderson RB
+73 WAS Deebo Samuel WR
+74 LVR Jakobi Meyers WR
+75 DEN RJ Harvey RB
+76 SF Jauan Jennings WR
+77 CLE David Njoku TE
+78 BUF Khalil Shakir WR
+79 BAL Mark Andrews TE
+Tier 7
+80 GB Jayden Reed WR
+81 MIN Jordan Addison WR
+82 CHI Rome Odunze WR
+83 CLE Jerry Jeudy WR
+84 BUF Dalton Kincaid TE
+85 KC Patrick Mahomes QB
+86 WAS Brian Robinson Jr. RB
+87 PIT Jaylen Warren RB
+88 SF Ricky Pearsall WR
+89 JAC Travis Etienne RB
+90 PIT Kaleb Johnson RB
+91 GB Tucker Kraft TE
+92 NE Stefon Diggs WR
+93 DAL Jake Ferguson TE
+94 DEN Evan Engram TE
+95 PHI Dallas Goedert TE
+96 IND Josh Downs WR
+97 IND Tyler Warren TE
+98 NYG Cameron Skattebo RB
+99 DEN Bo Nix QB
+100 NYJ Justin Fields QB
+101 IND Michael Pittman Jr. WR
+102 ARI Kyler Murray QB
+103 TB Baker Mayfield QB
+104 ATL Darnell Mooney WR
+105 TEN Tyjae Spears RB
+106 CHI Caleb Williams QB
+107 SEA Cooper Kupp WR
+108 LAC Justin Herbert QB
+109 NYG Tyrone Tracy Jr. RB
+110 WAS Austin Ekeler RB
+111 LAC Najee Harris RB
+112 NO Rashid Shaheed WR
+113 KC Marquise Brown WR
+114 BUF Keon Coleman WR
+115 DAL Dak Prescott QB
+116 JAC Tank Bigsby RB
+117 WAS Zach Ertz TE
+118 CHI Colston Loveland TE
+119 SF Brandon Aiyuk WR
+120 JAC Trevor Lawrence QB
+121 SF Brock Purdy QB
+122 DAL Javonte Williams RB
+123 NE Hunter Henry TE
+124 GB Jordan Love QB
+125 NE Drake Maye QB
+126 TEN Chigoziem Okonkwo TE
+127 DET Jared Goff QB
+128 HOU Jayden Higgins WR
+129 BAL Isaiah Likely TE
+130 HOU Christian Kirk WR
+131 MIN Jordan Mason RB
+132 CIN Mike Gesicki TE
+133 ATL Kyle Pitts TE
+134 PIT Jonnu Smith TE
+135 DAL Brandon Aubrey K
+136 TB Cade Otton TE
+137 TB Rachaad White RB
+138 DEN J.K. Dobbins RB
+139 MIN J.J. McCarthy QB
+140 HOU C.J. Stroud QB
+141 NE Rhamondre Stevenson RB
+142 GB Romeo Doubs WR
+143 GB Matthew Golden WR
+144 SEA Zach Charbonnet RB
+145 UNS Keenan Allen WR
+146 LAC Cameron Dicker K
+147 TB Emeka Egbuka WR
+148 HOU Dalton Schultz TE
+149 MIA Tua Tagovailoa QB
+150 JAC Brenton Strange TE
+151 DAL Jaydon Blue RB
+152 ATL Younghoe Koo K
+153 CHI Luther Burden III WR
+154 BUF Joshua Palmer WR
+155 UNS Amari Cooper WR
+156 WAS Matt Gay K
+157 PIT Pat Freiermuth TE
+158 NO Juwan Johnson TE
+159 PHI Jake Elliott K
+160 DET Jake Bates K
+161 GB Brandon McManus K
+162 HOU Ka'imi Fairbairn K
+163 CAR Bryce Young QB
+164 KC Harrison Butker K
+165 MIA Darren Waller TE
+166 JAC Cam Little K
+167 DEN Marvin Mims Jr. WR
+168 CLE Diontae Johnson WR
+169 JAC Bhayshul Tuten RB
+170 NYJ Mason Taylor TE
+171 BUF Ray Davis RB
+172 LAR Matthew Stafford QB
+173 NYG Wan'Dale Robinson WR
+174 LVR Daniel Carlson K
+175 LAC Quentin Johnston WR
+176 CHI Roschon Johnson RB
+177 CIN Evan McPherson K
+178 BAL Rashod Bateman WR
+179 CLE Cedric Tillman WR
+180 BAL Justice Hill RB
+181 BAL Tyler Loop K
+182 ATL Tyler Allgeier RB
+183 LAC Tre Harris WR
+184 TB Chase McLaughlin K
+185 NE Kyle Williams WR
+186 MIA Jason Sanders K
+187 DEN Wil Lutz K
+188 CHI Cole Kmet TE
+189 ARI Trey Benson RB
+190 LVR Geno Smith QB
+191 TEN Cameron Ward QB
+192 LAR Joshua Karty K
+193 CLE Jerome Ford RB
+194 ATL Michael Penix Jr. QB
+195 NYG Theo Johnson TE
+196 LVR Jack Bech WR
+197 SEA Sam Darnold QB
+198 CAR Xavier Legette WR
+199 MIA Jaylen Wright RB
+200 SF Isaac Guerendo RB
+201 LAR Blake Corum RB
+202 CAR Jalen Coker WR
+203 CLE Dylan Sampson RB
+204 CAR Adam Thielen WR
+205 ARI Chad Ryland K
+206 DAL Miles Sanders RB
+207 PIT Chris Boswell K
+208 KC Kareem Hunt RB
+209 ARI Michael Wilson WR
+210 GB MarShawn Lloyd RB
+211 NYG Darius Slayton WR
+212 SEA Jason Myers K
+213 CHI Cairo Santos K
+214 NO Kendre Miller RB
+215 NE Demario Douglas WR
+216 KC Elijah Mitchell RB
+217 BUF Tyler Bass K
+218 LAR Jarquez Hunter RB
+219 CAR Rico Dowdle RB
+220 NYJ Braelon Allen RB
+221 CAR Trevor Etienne RB
+222 TB Jalen McMillan WR
+223 HOU Jo'Quavious Marks RB
+224 SEA Elijah Arroyo TE
+225 CAR Ja'Tavion Sanders TE
+226 PHI Will Shipley RB
+227 LAR Terrance Ferguson TE
+228 PIT Aaron Rodgers QB
+229 GB Dontayvion Wicks WR
+230 SEA Noah Fant TE
+231 HOU Nick Chubb RB
+232 IND DJ Giddens RB
+233 NE Antonio Gibson RB
+234 SF Jordan James RB
+235 CIN Tahj Brooks RB
+236 ATL Ray-Ray McCloud WR
+237 IND Alec Pierce WR
+238 DEN Pat Bryant WR
+239 CIN Samaje Perine RB
+240 LAC Mike Williams WR
+241 MIN Will Reichard K
+242 LAR Tyler Higbee TE
+243 MIA Ollie Gordon II RB
+244 CIN Zack Moss RB
+245 LAC Will Dissly TE
+246 NYJ Isaiah Davis RB
+247 UNS Gus Edwards RB
+248 TEN Tyler Lockett WR
+249 BUF Ty Johnson RB
+250 NO Devin Neal RB`; // trimmed for example
+
+    const playerListEl = document.getElementById('playerList');
+    const removedListEl = document.getElementById('removedList');
+    const teamFilterEl = document.getElementById('teamFilter');
+    const positionFilterEl = document.getElementById('positionFilter');
+    const searchInputEl = document.getElementById('searchInput');
+
+    const lines = data.trim().split('\n');
+    const playerElements = [];
+    const allTeams = new Set();
+
+    lines.forEach((line, index) => {
+      if (line.startsWith('Tier')) {
+        const tierEl = document.createElement('div');
+        tierEl.className = 'tier-title';
+        tierEl.textContent = line;
+        playerListEl.appendChild(tierEl);
+        playerElements.push(tierEl);
+      } else if (line.trim()) {
+        const match = line.match(/^(\d+)\s+(\w+)\s+(.+?)\s+(QB|RB|WR|TE|K|DST)\b/);
+        if (match) {
+          const [_, rank, team, name, pos] = match;
+          allTeams.add(team);
+          const playerEl = document.createElement('div');
+          playerEl.className = `player ${pos}`;
+          playerEl.dataset.originalIndex = index;
+          playerEl.dataset.team = team;
+          playerEl.dataset.position = pos;
+          playerEl.dataset.name = name.toLowerCase();
+
+          const posEl = document.createElement('div');
+          posEl.className = 'position';
+          posEl.textContent = pos;
+
+          const nameEl = document.createElement('div');
+          nameEl.className = 'player-name';
+          nameEl.textContent = `${rank} ${team} ${name}`;
+
+          playerEl.appendChild(posEl);
+          playerEl.appendChild(nameEl);
+
+          playerEl.addEventListener('click', () => {
+            const originalIndex = parseInt(playerEl.dataset.originalIndex);
+            if (playerEl.parentElement.id === 'playerList') {
+              removedListEl.appendChild(playerEl);
+            } else {
+              const allChildren = Array.from(playerListEl.children);
+              let inserted = false;
+              for (let i = 0; i < allChildren.length; i++) {
+                const child = allChildren[i];
+                if (child.dataset.originalIndex && parseInt(child.dataset.originalIndex) > originalIndex) {
+                  playerListEl.insertBefore(playerEl, child);
+                  inserted = true;
+                  break;
+                }
+              }
+              if (!inserted) playerListEl.appendChild(playerEl);
+            }
+          });
+
+          playerListEl.appendChild(playerEl);
+          playerElements.push(playerEl);
+        }
+      }
+    });
+
+    Array.from(allTeams).sort().forEach(team => {
+      const option = document.createElement('option');
+      option.value = team;
+      option.textContent = team;
+      teamFilterEl.appendChild(option);
+    });
+
+    function applyFilters() {
+      const team = teamFilterEl.value;
+      const pos = positionFilterEl.value;
+      const search = searchInputEl.value.toLowerCase();
+
+      playerElements.forEach(el => {
+        if (!el || !el.classList.contains('player')) return;
+
+        const matchesTeam = !team || el.dataset.team === team;
+        const matchesPos = !pos || el.dataset.position === pos;
+        const matchesSearch = !search || el.dataset.name.includes(search);
+
+        el.style.display = matchesTeam && matchesPos && matchesSearch ? '' : 'none';
+      });
+    }
+
+    teamFilterEl.addEventListener('change', applyFilters);
+    positionFilterEl.addEventListener('change', applyFilters);
+    searchInputEl.addEventListener('input', applyFilters);
+  </script>
+</body>
+</html>
